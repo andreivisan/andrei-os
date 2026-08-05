@@ -1,11 +1,14 @@
 use std::time::{Duration, SystemTime};
 
+// Can be copy
 pub enum Source {
     Gadget,
     IPhone,
     Web,
 }
 
+// Can't be copy - should only have one owner
+// to keep its integrity
 pub enum Payload {
     Text(String),
     Voice {
@@ -29,6 +32,20 @@ pub struct Task {
     pub title: String,
     pub last_touched: SystemTime,
     pub done: bool,
+}
+
+pub struct Inbox {
+    items: Vec<CaptureItem>,
+}
+
+impl Inbox {
+    pub fn new() -> Self {
+        Self { items: Vec::new() }
+    }
+
+    pub fn push(&mut self, item: CaptureItem) {
+        self.items.push(item);
+    }
 }
 
 fn main() {
