@@ -46,6 +46,15 @@ impl Inbox {
     pub fn push(&mut self, item: CaptureItem) {
         self.items.push(item);
     }
+
+    // let items = self.items is invalid.
+    // I have only 2 possible explanations:
+    // 1. either &mut means only the reference can be mutated
+    // 2. Lifetime is unknown as we borrowed the value and 2 mut references
+    // to the same addres is invalid in Rust
+    pub fn take_all(&mut self) -> Vec<CaptureItem> {
+        //I should use Vec's drain
+    }
 }
 
 fn main() {
