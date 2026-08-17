@@ -1,15 +1,13 @@
 use std::time::{Duration, SystemTime};
 
-// Can be copy
-pub enum Source {
+#[derive(Clone, Copy)]
+pub enum CaptureSource {
     Gadget,
     IPhone,
     Web,
 }
 
-// Can't be copy - should only have one owner
-// to keep its integrity
-pub enum Payload {
+pub enum CapturePayload {
     Text(String),
     Voice {
         transcript: String,
@@ -22,8 +20,8 @@ pub enum Payload {
 
 pub struct CaptureItem {
     pub id: u64,
-    pub source: Source,
-    pub payload: Payload,
+    pub source: CaptureSource,
+    pub payload: CapturePayload,
     pub created_at: SystemTime,
 }
 
@@ -47,14 +45,7 @@ impl Inbox {
         self.items.push(item);
     }
 
-    // let items = self.items is invalid.
-    // I have only 2 possible explanations:
-    // 1. either &mut means only the reference can be mutated
-    // 2. Lifetime is unknown as we borrowed the value and 2 mut references
-    // to the same addres is invalid in Rust
-    pub fn take_all(&mut self) -> Vec<CaptureItem> {
-        //I should use Vec's drain
-    }
+    pub fn take_all(&mut self) -> Vec<CaptureItem> {}
 }
 
 fn main() {
