@@ -45,7 +45,9 @@ impl Inbox {
         self.items.push(item);
     }
 
-    pub fn take_all(&mut self) -> Vec<CaptureItem> {}
+    pub fn take_all(&mut self) -> Vec<CaptureItem> {
+        std::mem::take(&mut self.items)
+    }
 }
 
 fn main() {
