@@ -11,7 +11,7 @@ pub mod second_brain;
 pub fn router() -> Router {
     Router::new()
         .nest("/api/capture", capture::router())
-        .nest("/api/expenses", expenses::router())
+        .nest("/api/expenses", expenses::router::router())
         .nest("/api/fitness", fitness::router())
         .nest("/api/second-brain", second_brain::router())
 }
