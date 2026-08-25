@@ -1,3 +1,4 @@
+pub mod infrastructure;
 pub mod modules;
 
 fn main() {

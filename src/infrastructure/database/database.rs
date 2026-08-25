@@ -1,8 +1,21 @@
-use sqlx::sqlite::SqlitePool;
+use sqlx::SqlitePool;
+use thiserror::Error;
+
+use crate::infrastructure::database::sqlite::SqliteOptions;
+
+pub type DatabasePool = SqlitePool;
+
+#[derive(Clone, Debug)]
+pub struct DatabaseOptions {
+    pub sqlite: SqliteOptions,
+}
 
 pub struct Database;
 
 impl Database {
+
+    pub async fn connect(options: DatabaseOptions) -> Result<DatabaseP
+
     pub async fn migrate(pool: &SqlitePool) -> Result<(), DatabaseError> {
         sqlx::migrate!("src/infrastructure/database/sqlite/migrations")
             .run(pool)

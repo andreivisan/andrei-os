@@ -12,3 +12,4 @@ sqlx = {
     default-features = false,
     features = ["runtime-tokio", "sqlite", "macros", "migrate"]
 }
+thiserror = "2.0.20"
