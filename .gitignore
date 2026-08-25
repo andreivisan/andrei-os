@@ -23,3 +23,7 @@ Temporary Items
 # Expense tracker design reference
 /Expense tracker mobile app design/
 /Expense tracker mobile app design.zip
+
+# Axum DB
+/.env
+/andrei-os.db*
