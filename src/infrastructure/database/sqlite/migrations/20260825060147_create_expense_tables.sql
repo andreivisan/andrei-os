@@ -1,10 +1,11 @@
--- Add migration script here
+-- create categories table
 CREATE TABLE categories (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
     category_group TEXT NOT NULL
 );
 
+-- create expenses table
 CREATE TABLE expenses (
     id INTEGER PRIMARY KEY,
     amount INTEGER NOT NULL,
