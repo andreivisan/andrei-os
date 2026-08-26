@@ -1,42 +1,23 @@
-use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
+use sqlx::{
+    SqlitePool,
+    sqlite::{SqliteConnectOptions, SqlitePoolOptions},
+};
+use std::str::FromStr;
 
 use crate::infrastructure::database::{Database, DatabaseError};
 
 #[derive(Clone, Debug)]
 pub struct SqliteOptions {
     // database name
-    pub db: String,
+    pub db_url: String,
 
     // Max connections (connectio pool)
     pub max_connections: u32,
 }
 
-impl SqliteOptions {
-    pub fn connection_url(&self) -> String {
-        format!("sqlite://{}.db", self.db)
-    }
-
-    pub fn set_db(&mut self, sqlite_db: &str) {
-        self.db = sqlite_db.to_owned();
-    }
-
-    pub fn db(&self) -> String {
-        self.db.clone()
-    }
-
-    pub const fn set_max_connections(&mut self, max_connections: u32) {
-        self.max_connections = max_connections
-    }
-
-    pub const fn max_connections(&self) -> u32 {
-        self.max_connections
-    }
-}
-
 #[non_exhaustive]
 pub struct SqliteDatabase {
     pool: SqlitePool,
-    options: SqliteOptions,
 }
 
 impl Database for SqliteDatabase {
@@ -44,18 +25,20 @@ impl Database for SqliteDatabase {
     type Options = SqliteOptions;
 
     async fn connect(options: SqliteOptions) -> Result<Self, DatabaseError> {
-        let connection_url = options.connection_url();
-        let max_connections = options.max_connections();
+        let connection_url = options.db_url;
+        let max_connections = options.max_connections;
 
         // Connect to the DB and get a connection pool
+        let connect_options =
+            SqliteConnectOptions::from_str(&connection_url)?.create_if_missing(true);
         let pool = SqlitePoolOptions::new()
             .max_connections(max_connections)
-            .connect(&connection_url)
+            .connect_with(connect_options)
             .await?;
 
         tracing::info!("Connected to the DB.");
 
-        Ok(Self { pool, options })
+        Ok(Self { pool })
     }
 
     fn pool(&self) -> &SqlitePool {
