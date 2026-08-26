@@ -9,13 +9,12 @@ use crate::infrastructure::database::{Database, DatabaseError};
 #[derive(Clone, Debug)]
 pub struct SqliteOptions {
     // database name
-    pub db_url: String,
+    pub database_url: String,
 
     // Max connections (connectio pool)
     pub max_connections: u32,
 }
 
-#[non_exhaustive]
 pub struct SqliteDatabase {
     pool: SqlitePool,
 }
@@ -25,7 +24,7 @@ impl Database for SqliteDatabase {
     type Options = SqliteOptions;
 
     async fn connect(options: SqliteOptions) -> Result<Self, DatabaseError> {
-        let connection_url = options.db_url;
+        let connection_url = options.database_url;
         let max_connections = options.max_connections;
 
         // Connect to the DB and get a connection pool
