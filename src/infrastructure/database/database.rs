@@ -1,27 +1,12 @@
-use sqlx::SqlitePool;
 use thiserror::Error;
 
-use crate::infrastructure::database::sqlite::SqliteOptions;
+pub trait Database: Sized {
+    type Pool;
+    type Options;
 
-pub type DatabasePool = SqlitePool;
-
-#[derive(Clone, Debug)]
-pub struct DatabaseOptions {
-    pub sqlite: SqliteOptions,
-}
-
-pub struct Database;
-
-impl Database {
-
-    pub async fn connect(options: DatabaseOptions) -> Result<DatabaseP
-
-    pub async fn migrate(pool: &SqlitePool) -> Result<(), DatabaseError> {
-        sqlx::migrate!("src/infrastructure/database/sqlite/migrations")
-            .run(pool)
-            .await?;
-        Ok(())
-    }
+    async fn connect(options: Self::Options) -> Result<Self, DatabaseError>;
+    fn pool(&self) -> &Self::Pool;
+    async fn migrate(&self) -> Result<(), DatabaseError>;
 }
 
 #[derive(Error, Debug)]
