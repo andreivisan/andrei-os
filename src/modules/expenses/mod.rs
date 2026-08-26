@@ -6,5 +6,4 @@ pub mod router;
 /*
 REPOSITORY
 */
-
 pub type RepositoryResult<T> = Result<T, sqlx::Error>;
