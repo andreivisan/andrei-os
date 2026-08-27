@@ -1,4 +1,4 @@
-use axum::{Router, routing::get};
+use axum::Router;
 use tokio::{
     net::TcpListener,
     signal::{
@@ -7,12 +7,10 @@ use tokio::{
     },
 };
 
-use crate::{application::SharedState, modules::expenses::handlers::get_expenses};
+use crate::{application::SharedState, modules};
 
 pub async fn start(state: SharedState) {
-    let router: Router = Router::new()
-        .route("/api/expenses", get(get_expenses))
-        .with_state(state);
+    let router: Router = modules::router().with_state(state);
 
     let listener = TcpListener::bind("127.0.0.1:3000")
         .await
