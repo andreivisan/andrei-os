@@ -2,8 +2,6 @@
 
 use std::time::SystemTime;
 
-use axum::Router;
-
 #[derive(Clone, Copy)]
 pub enum CaptureSource {
     Gadget,
@@ -45,9 +43,4 @@ impl Inbox {
     pub fn take_all(&mut self) -> Vec<CaptureItem> {
         std::mem::take(&mut self.items)
     }
-}
-
-/// Routes owned by the capture module will be added here.
-pub fn router() -> Router {
-    Router::new()
 }

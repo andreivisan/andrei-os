@@ -2,11 +2,7 @@ pub mod application;
 pub mod infrastructure;
 pub mod modules;
 
-fn main() {
-    let _app = modules::router();
-
-    let name = String::from("Andrei");
-    needs_static(name);
+#[tokio::main]
+async fn main() {
+    application::run().await;
 }
-
-fn needs_static<T: 'static>(value: T) {}

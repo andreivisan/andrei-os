@@ -5,6 +5,8 @@ use thiserror::Error;
 
 use crate::infrastructure::database::{Database, SqliteDatabase, SqliteOptions};
 
+pub mod server;
+
 #[derive(Clone, Debug, Error)]
 pub enum ConfigError {
     #[error("failed to read an environment variable")]
@@ -22,9 +24,9 @@ pub struct Config {
 }
 
 pub fn load() -> Result<Config, ConfigError> {
-    let database_url = std::env::var("DATABASE_URL")?;
+    let database_url = std::env::var("ANDREI_OS_DATABASE_URL")?;
 
-    let max_connections = std::env::var("DATABASE_MAX_CONNECTIONS")?.parse::<u32>()?;
+    let max_connections = std::env::var("ANDREI_OS_DATABASE_MAX_CONNECTIONS")?.parse::<u32>()?;
 
     Ok(Config {
         database_url,
@@ -65,8 +67,10 @@ pub async fn run() {
 
     let database_pool = database.pool().clone();
 
-    let _shared_state = Arc::new(AppState {
+    let shared_state = Arc::new(AppState {
         config,
         database_pool,
     });
+
+    server::start(shared_state).await;
 }
