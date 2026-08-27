@@ -27,3 +27,7 @@ Temporary Items
 # Axum DB
 /.env
 /andrei-os.db*
+
+# Frontend
+/client/node_modules/
+/client/dist/
