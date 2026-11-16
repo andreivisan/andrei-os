@@ -292,8 +292,10 @@ a.is-missing { color: var(--missing) !important; text-decoration: underline dash
 .wiki-foot { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; font-size: 14px; line-height: 1.5; }
 .wiki-foot div { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
 .wiki-foot span { color: var(--text-3); }
-.all-list { columns: 2 220px; padding-left: 22px; display: block !important; }
-.all-list li { break-inside: avoid; padding: 2px 0; }
+/* align-self: the section's flex-start would shrink-wrap the list, making columns only as wide as the
+   longest title. column-gap must exceed the outside bullet's indent or bullets land on column 1's text. */
+.all-list { align-self: stretch; columns: 2 220px; column-gap: 48px; padding-left: 22px; display: block !important; }
+.all-list li { break-inside: avoid; padding: 2px 0; overflow-wrap: anywhere; }
 
 @media (max-width: 640px) {
   .main { padding: 28px 16px 56px; gap: 36px; }
