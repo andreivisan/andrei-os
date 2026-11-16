@@ -23,7 +23,6 @@ pub struct Config {
     pub tmdb_api_key: Option<String>,
     /// Background sync interval for `serve`; 0 disables it.
     pub sync_interval_mins: u64,
-    pub whisper_bin: Option<PathBuf>,
     pub whisper_model: PathBuf,
     pub ffmpeg_bin: PathBuf,
 }
@@ -47,15 +46,6 @@ impl Config {
             .parse()
             .map_err(|e| anyhow::anyhow!("ANDREIOS_TZ: {e}"))?;
         let notes_container = home.join("Library/Group Containers/group.com.apple.notes");
-        let whisper_bin = env("ANDREIOS_WHISPER_BIN").map(PathBuf::from).or_else(|| {
-            [
-                "/opt/homebrew/bin/whisper-cli",
-                "/usr/local/bin/whisper-cli",
-            ]
-            .iter()
-            .map(PathBuf::from)
-            .find(|p| p.exists())
-        });
         Ok(Self {
             bind: env("ANDREIOS_BIND").unwrap_or_else(|| "127.0.0.1:4000".into()),
             tz,
@@ -78,7 +68,6 @@ impl Config {
             sync_interval_mins: env("ANDREIOS_SYNC_INTERVAL_MINS")
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(15),
-            whisper_bin,
             whisper_model: env("ANDREIOS_WHISPER_MODEL")
                 .map(PathBuf::from)
                 .unwrap_or_else(|| data_dir.join("models/ggml-large-v3-turbo.bin")),

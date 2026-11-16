@@ -46,7 +46,8 @@ Notes outside the `AndreiOS` folder are ignored (change with `ANDREIOS_NOTES_ROO
   your summary, synopsis, credits. Metadata from TMDB (films, TV) and Open
   Library (books); posters are cached locally.
 - **Voice notes**: audio recordings in notes get a player and a transcript —
-  Apple's own when available, otherwise whisper.cpp (English and Romanian).
+  Apple's own when available, otherwise Whisper, run in-process on the GPU
+  (language auto-detected, so Romanian works too; Apple's transcriber has no Romanian).
 
 ## Run it
 
@@ -74,28 +75,37 @@ Data lives in `~/Library/Application Support/AndreiOS/` (`andrei-os.db`,
 | `ANDREIOS_NOTES_ROOT` | `AndreiOS` |
 | `ANDREIOS_CALENDARS` | all except Birthdays, Siri suggestions, Scheduled Reminders; e.g. `Business,Life,Health & Fitness` |
 | `TMDB_API_KEY` | none — get a free key at themoviedb.org (v3 key or v4 read token) |
-| `ANDREIOS_WHISPER_BIN` / `ANDREIOS_WHISPER_MODEL` | `/opt/homebrew/bin/whisper-cli` / `<data>/models/ggml-large-v3-turbo.bin` |
+| `ANDREIOS_WHISPER_MODEL` | `<data>/models/ggml-large-v3-turbo.bin` |
+| `ANDREIOS_FFMPEG_BIN` | `/opt/homebrew/bin/ffmpeg` (falls back to macOS `afconvert`) |
 
 ### Transcription
 
+Same stack as rustscribe: `transcribe-rs` (whisper.cpp via whisper-rs) with
+Metal, compiled into the binary (building needs `cmake`). Only the model file
+is needed; a hard link shares rustscribe's copy without using more disk:
+
 ```sh
-brew install whisper.cpp
 mkdir -p ~/Library/Application\ Support/AndreiOS/models
-curl -L -o ~/Library/Application\ Support/AndreiOS/models/ggml-large-v3-turbo.bin \
-  https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin
-andrei-os transcribe --force   # replace Apple's English-only transcripts too
+ln ~/dev/rustscribe/models/ggml-large-v3-turbo.bin ~/Library/Application\ Support/AndreiOS/models/
+andrei-os transcribe           # recordings without a transcript (sync does up to 10 each run)
+andrei-os transcribe --force   # replace Apple's transcripts too
 ```
 
 ### Run it in the background (launchd)
 
 ```sh
-cargo install --path .
+cargo build --release && install -m 755 target/release/andrei-os ~/.cargo/bin/
 sed "s/YOUR_USER/$USER/g" deploy/com.andreios.server.plist > ~/Library/LaunchAgents/com.andreios.server.plist
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.andreios.server.plist
 ```
 
 Then add `~/.cargo/bin/andrei-os` to **Full Disk Access** (launchd processes
-don't inherit your terminal's permission). Logs: `~/Library/Logs/AndreiOS.log`.
+don't inherit your terminal's permission) and restart it:
+`launchctl kickstart -k gui/$(id -u)/com.andreios.server`.
+
+The binary is ad-hoc signed, so macOS pins the grant to that exact build:
+**after every reinstall, remove and re-add it in Full Disk Access**, then
+restart it as above. Logs: `~/Library/Logs/AndreiOS.log`.
 The **Sync log** page in the app shows which sources are readable.
 
 ## Security

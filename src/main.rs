@@ -18,7 +18,7 @@ enum Cmd {
     Serve,
     /// Sync once from Apple Notes, Reminders and Calendar, then exit.
     Sync,
-    /// Transcribe Notes audio recordings with whisper.cpp.
+    /// Transcribe Notes audio recordings with Whisper (in-process, Metal).
     Transcribe {
         /// Also replace Apple's own transcripts (e.g. for Romanian recordings).
         #[arg(long)]
@@ -33,6 +33,8 @@ async fn main() -> anyhow::Result<()> {
             tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| "andrei_os=info,tower_http=warn".into()),
         )
+        // Plain text when stdout is a file (launchd log), colours in a terminal.
+        .with_ansi(std::io::IsTerminal::is_terminal(&std::io::stdout()))
         .init();
     let cfg = Config::from_env()?;
     cfg.ensure_dirs()?;

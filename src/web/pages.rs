@@ -1286,7 +1286,7 @@ pub async fn sync_log(State(st): State<AppState>) -> PageResult {
             cfg.calendar_db.display().to_string(),
         ),
         (
-            "Transcription (whisper.cpp)".to_string(),
+            "Transcription (Whisper model)".to_string(),
             whisper.is_ok(),
             match whisper {
                 Ok(b) => b.display().to_string(),

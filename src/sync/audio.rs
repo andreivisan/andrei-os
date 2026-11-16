@@ -1,15 +1,22 @@
-//! Transcription of Notes audio recordings with whisper.cpp.
+//! Transcription of Notes audio recordings, in-process with whisper.cpp.
 //!
-//! Apple already stores an (English-only) transcript for most recordings;
-//! the Notes sync imports those. This fills the gaps with whisper.cpp, and
-//! `andrei-os transcribe --force` re-transcribes everything (Romanian too).
+//! Same stack as `~/dev/rustscribe`: `transcribe-rs` (wrapping whisper-rs)
+//! with the Metal backend and energy-adaptive chunking. Apple already stores
+//! a transcript for most recordings (its transcriber does not support
+//! Romanian); the Notes sync imports those, this fills the gaps, and
+//! `andrei-os transcribe --force` re-transcribes everything. The language is
+//! auto-detected, so English and Romanian both work.
 
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
+use std::sync::Once;
 use std::time::Duration;
 
 use sqlx::{Row, SqlitePool};
 use tokio::process::Command;
+use transcribe_rs::transcriber::{EnergyAdaptiveChunked, EnergyAdaptiveConfig, Transcriber};
+use transcribe_rs::whisper_cpp::WhisperEngine;
+use transcribe_rs::{SpeechModel, TranscribeOptions};
 
 use crate::config::Config;
 use crate::time::now_iso;
@@ -21,21 +28,34 @@ pub struct AudioReport {
     pub warnings: Vec<String>,
 }
 
+/// The model file, if it is present (a GGML Whisper model is > 50 MB).
 pub fn whisper_ready(cfg: &Config) -> Result<PathBuf, String> {
-    let bin = cfg
-        .whisper_bin
-        .clone()
-        .ok_or_else(|| "whisper.cpp not installed (brew install whisper.cpp)".to_string())?;
     let ok = std::fs::metadata(&cfg.whisper_model)
         .map(|m| m.len() > 50_000_000)
         .unwrap_or(false);
-    if !ok {
-        return Err(format!(
-            "whisper model missing at {} (see README: Transcription)",
+    if ok {
+        Ok(cfg.whisper_model.clone())
+    } else {
+        Err(format!(
+            "Whisper model missing at {} (see README: Transcription)",
             cfg.whisper_model.display()
-        ));
+        ))
     }
-    Ok(bin)
+}
+
+static CONFIGURE_ACCELERATOR: Once = Once::new();
+
+/// Load the model (blocking, a few seconds). The accelerator preference is
+/// process-wide in transcribe-rs, so it is set once before the first load.
+/// whisper.cpp/GGML print hundreds of lines per run; routing them through
+/// whisper-rs's hooks (no log backend enabled) drops them. Failures still
+/// surface as errors from transcribe-rs.
+fn load_model(path: &Path) -> anyhow::Result<WhisperEngine> {
+    CONFIGURE_ACCELERATOR.call_once(|| {
+        whisper_rs::install_logging_hooks();
+        transcribe_rs::set_whisper_accelerator(transcribe_rs::WhisperAccelerator::Gpu);
+    });
+    WhisperEngine::load(path).map_err(|e| anyhow::anyhow!("load Whisper model: {e}"))
 }
 
 /// Transcribe up to `limit` recordings. `force` re-does Apple transcripts too.
@@ -58,8 +78,8 @@ pub async fn transcribe(
     if rows.is_empty() {
         return Ok(report);
     }
-    let bin = match whisper_ready(cfg) {
-        Ok(b) => b,
+    let model_path = match whisper_ready(cfg) {
+        Ok(p) => p,
         Err(e) => {
             report.warnings.push(format!(
                 "{} recording(s) without transcript: {e}",
@@ -68,13 +88,32 @@ pub async fn transcribe(
             return Ok(report);
         }
     };
+    // Loaded once per batch and dropped afterwards: the model holds ~1.6 GB
+    // that the server should not keep between syncs.
+    let mut model = tokio::task::spawn_blocking(move || load_model(&model_path)).await??;
+
     let work = std::env::temp_dir().join("andrei-os-audio");
     std::fs::create_dir_all(&work)?;
     for r in rows {
         let id: i64 = r.get("id");
         let media: String = r.get("media_path");
         let file = cfg.media_dir().join(media.trim_start_matches("/media/"));
-        match run_whisper(cfg, &bin, &file, &work, id).await {
+        let wav = work.join(format!("{id}.wav"));
+        let result = match to_wav(cfg, &file, &wav).await {
+            Ok(()) => {
+                let wav_in = wav.clone();
+                let (m, res) = tokio::task::spawn_blocking(move || {
+                    let res = transcribe_wav(&mut model, &wav_in);
+                    (model, res)
+                })
+                .await?;
+                model = m;
+                res
+            }
+            Err(e) => Err(e),
+        };
+        let _ = std::fs::remove_file(&wav);
+        match result {
             Ok(text) => {
                 sqlx::query(
                     "UPDATE attachments SET transcript=?, transcript_source='whisper', transcribed_at=? WHERE id=?",
@@ -94,84 +133,88 @@ pub async fn transcribe(
     Ok(report)
 }
 
-async fn run_cmd(cmd: &mut Command, secs: u64) -> anyhow::Result<std::process::Output> {
-    let child = cmd
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .kill_on_drop(true)
-        .spawn()?;
-    let out = tokio::time::timeout(Duration::from_secs(secs), child.wait_with_output())
-        .await
-        .map_err(|_| anyhow::anyhow!("timed out after {secs}s"))??;
-    if !out.status.success() {
-        let err = String::from_utf8_lossy(&out.stderr);
-        let tail: String = err
-            .lines()
-            .rev()
-            .take(5)
-            .collect::<Vec<_>>()
-            .into_iter()
-            .rev()
-            .collect::<Vec<_>>()
-            .join(" | ");
-        anyhow::bail!("{tail}");
-    }
-    Ok(out)
-}
-
-async fn run_whisper(
-    cfg: &Config,
-    bin: &Path,
-    input: &Path,
-    work: &Path,
-    id: i64,
-) -> anyhow::Result<String> {
+/// Whisper needs 16 kHz mono 16-bit PCM. Prefer ffmpeg (as rustscribe does);
+/// fall back to macOS's own afconvert, which is always present (launchd
+/// processes do not see Homebrew's PATH).
+async fn to_wav(cfg: &Config, input: &Path, wav: &Path) -> anyhow::Result<()> {
     if !input.is_file() {
         anyhow::bail!("file missing");
     }
-    let wav = work.join(format!("{id}.wav"));
-    // whisper.cpp needs 16 kHz mono PCM; prefer ffmpeg, fall back to macOS afconvert.
-    let conv = if cfg.ffmpeg_bin.exists() {
-        run_cmd(
-            Command::new(&cfg.ffmpeg_bin)
-                .args(["-nostdin", "-loglevel", "error", "-y", "-i"])
-                .arg(input)
-                .args(["-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le"])
-                .arg(&wav),
-            120,
-        )
-        .await
+    let mut cmd = if cfg.ffmpeg_bin.exists() {
+        let mut c = Command::new(&cfg.ffmpeg_bin);
+        c.args(["-hide_banner", "-nostdin", "-loglevel", "error", "-y", "-i"])
+            .arg(input)
+            .args([
+                "-map",
+                "0:a:0",
+                "-vn",
+                "-ac",
+                "1",
+                "-ar",
+                "16000",
+                "-c:a",
+                "pcm_s16le",
+            ])
+            .arg(wav);
+        c
     } else {
-        run_cmd(
-            Command::new("/usr/bin/afconvert")
-                .args(["-f", "WAVE", "-d", "LEI16@16000", "-c", "1"])
-                .arg(input)
-                .arg(&wav),
-            120,
-        )
-        .await
+        let mut c = Command::new("/usr/bin/afconvert");
+        c.args(["-f", "WAVE", "-d", "LEI16@16000", "-c", "1"])
+            .arg(input)
+            .arg(wav);
+        c
     };
-    conv?;
-    let prefix = work.join(format!("{id}"));
-    let res = run_cmd(
-        Command::new(bin)
-            .arg("-m")
-            .arg(&cfg.whisper_model)
-            .arg("-f")
-            .arg(&wav)
-            .args(["-l", "auto", "-otxt", "-np", "-nt"])
-            .arg("-of")
-            .arg(&prefix),
-        900,
-    )
-    .await;
-    let _ = std::fs::remove_file(&wav);
-    res?;
-    let txt_path = prefix.with_extension("txt");
-    let text = std::fs::read_to_string(&txt_path)?;
-    let _ = std::fs::remove_file(&txt_path);
-    let text = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    let child = cmd
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true)
+        .spawn()?;
+    let out = tokio::time::timeout(Duration::from_secs(120), child.wait_with_output())
+        .await
+        .map_err(|_| anyhow::anyhow!("audio conversion timed out"))??;
+    if !out.status.success() {
+        let err = String::from_utf8_lossy(&out.stderr);
+        anyhow::bail!("audio conversion failed: {}", err.trim());
+    }
+    Ok(())
+}
+
+/// Feed the WAV to the model in ~25 s chunks cut at quiet points (the
+/// rustscribe settings), with the language left to auto-detection.
+fn transcribe_wav(model: &mut dyn SpeechModel, wav: &Path) -> anyhow::Result<String> {
+    let mut reader = hound::WavReader::open(wav)?;
+    let spec = reader.spec();
+    if spec.sample_rate != 16_000
+        || spec.channels != 1
+        || spec.bits_per_sample != 16
+        || spec.sample_format != hound::SampleFormat::Int
+    {
+        anyhow::bail!("expected 16 kHz mono 16-bit PCM, got {spec:?}");
+    }
+    if reader.duration() == 0 {
+        anyhow::bail!("recording contains no audio");
+    }
+    let config = EnergyAdaptiveConfig {
+        target_chunk_secs: 25.0,
+        search_window_secs: 2.0,
+        padding_secs: 0.0,
+        min_chunk_secs: 0.0,
+        ..Default::default()
+    };
+    // language: None = whisper.cpp auto-detects (per chunk).
+    let mut chunker = EnergyAdaptiveChunked::new(config, TranscribeOptions::default());
+    let mut buffer: Vec<f32> = Vec::with_capacity(16_000);
+    for sample in reader.samples::<i16>() {
+        buffer.push(f32::from(sample?) / 32768.0);
+        if buffer.len() == 16_000 {
+            chunker.feed(model, &buffer)?;
+            buffer.clear();
+        }
+    }
+    chunker.feed(model, &buffer)?;
+    let result = chunker.finish(model)?;
+    let text = result.text.split_whitespace().collect::<Vec<_>>().join(" ");
     if text.is_empty() {
         anyhow::bail!("empty transcript");
     }
