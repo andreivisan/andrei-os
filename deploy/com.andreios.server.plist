@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Runs AndreiOS at login and keeps it running.
+  Install: see README.md ("Run it in the background"). Replace YOUR_USER.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.andreios.server</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/YOUR_USER/.cargo/bin/andrei-os</string>
+    <string>serve</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HOME</key>
+    <string>/Users/YOUR_USER</string>
+    <key>ANDREIOS_BIND</key>
+    <string>127.0.0.1:4000</string>
+    <key>ANDREIOS_SYNC_INTERVAL_MINS</key>
+    <string>15</string>
+    <!-- <key>TMDB_API_KEY</key><string>your key</string> -->
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>StandardOutPath</key>
+  <string>/Users/YOUR_USER/Library/Logs/AndreiOS.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/YOUR_USER/Library/Logs/AndreiOS.log</string>
+</dict>
+</plist>

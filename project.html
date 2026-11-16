@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#050607">
+  <title>Andrei OS — Project: HudAgents</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;family=Space+Grotesk:wght@400;500&amp;display=swap">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <div class="app">
+    <nav class="side" aria-label="Sections">
+      <a class="brand" href="index.html">Andrei OS</a>
+      <div class="nav">
+        <a href="index.html">Dashboard</a>
+        <a href="project.html" aria-current="page">Projects</a>
+        <a href="wiki.html">Wiki</a>
+        <a href="library.html">Library</a>
+      </div>
+    </nav>
+    <main class="main">
+      <header class="page-head">
+        <div class="tabs" role="group" aria-label="Projects">
+          <button class="tab" type="button" aria-pressed="true">HudAgents</button>
+          <button class="tab" type="button" aria-pressed="false">HUDPod</button>
+          <button class="tab" type="button" aria-pressed="false">HudBridge</button>
+          <button class="tab" type="button" aria-pressed="false">AndreiOS</button>
+          <button class="tab" type="button" aria-pressed="false">Course book</button>
+        </div>
+        <div class="page-head__intro">
+          <h1 class="title">HudAgents</h1>
+          <p>Rust agents framework that routes each request to a local or a cloud model.</p>
+        </div>
+      </header>
+      <section class="section">
+        <h2 class="label">Related notes · from Learning</h2>
+        <div class="notes">
+          <a class="note" href="wiki.html#the-future-trait-and-the-poll-contract">The Future trait and the poll contract<span class="meta">Rust · markdown</span></a>
+          <a class="note" href="wiki.html#serde-parse-don-t-validate">serde: parse, don't validate<span class="meta">Rust · markdown</span></a>
+          <a class="note" href="wiki.html#embassy-vs-rtic">Embassy vs RTIC<span class="meta">Embedded · handwritten</span></a>
+          <a class="note" href="wiki.html#i2s-microphone">I2S microphone<span class="meta">Electronics · voice</span></a>
+        </div>
+      </section>
+      <section class="section">
+        <h2 class="label">Tasks</h2>
+        <div class="board">
+          <div class="column ">
+            <h3 class="column__head">To do<span class="meta">3</span></h3>
+            <div class="card">WASM sandbox for third-party agents<span class="meta">Reminders</span></div>
+            <div class="card">Audit log for every cloud call<span class="meta">Notes</span></div>
+            <div class="card">Bring-your-own API keys for cloud models<span class="meta">Reminders</span></div>
+          </div>
+          <div class="column column--doing">
+            <h3 class="column__head">Doing<span class="meta">2</span></h3>
+            <div class="card">Model router: local vs cloud policy<span class="meta">Reminders · today</span></div>
+            <div class="card">Perception stream ingest: video and audio<span class="meta">Notes</span></div>
+          </div>
+          <div class="column column--done">
+            <h3 class="column__head">Done<span class="meta">2</span></h3>
+            <div class="card">HudBridge handshake with the Z100<span class="meta">Reminders</span></div>
+            <div class="card">FOSSibiu booth demo<span class="meta">Calendar</span></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+</body>
+</html>

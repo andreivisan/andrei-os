@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#050607">
+  <title>Andrei OS — Wiki</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;family=Space+Grotesk:wght@400;500&amp;display=swap">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <div class="app">
+    <nav class="side" aria-label="Sections">
+      <a class="brand" href="index.html">Andrei OS</a>
+      <div class="nav">
+        <a href="index.html">Dashboard</a>
+        <a href="project.html">Projects</a>
+        <a href="wiki.html" aria-current="page">Wiki</a>
+        <a href="library.html">Library</a>
+      </div>
+    </nav>
+    <main class="main main--wiki">
+      <div class="wiki-search" role="search">
+        <label class="sr-only" for="wiki-q">Search the wiki</label>
+        <input id="wiki-q" type="search" placeholder="Search the wiki  ( / )" autocomplete="off">
+        <div class="wiki-results" id="wiki-results" hidden></div>
+      </div>
+      <div class="wiki-bar">
+        <div class="tabs">
+          <a class="tab" id="tab-article" href="#electronics" aria-current="page">Article</a>
+          <a class="tab" id="tab-links" href="#electronics/links-here">What links here</a>
+        </div>
+        <div class="tabs">
+          <a class="tab" id="tab-all" href="#special:all">All articles</a>
+          <a class="tab" href="#special:random">Random</a>
+        </div>
+      </div>
+      <div class="wiki-body" id="wiki-body">
+        <noscript>The wiki needs JavaScript: articles live in assets/wiki.js.</noscript>
+      </div>
+    </main>
+  </div>
+  <script src="assets/wiki.js"></script>
+</body>
+</html>

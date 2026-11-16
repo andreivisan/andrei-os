@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-head">
+  <div class="tabs tabs--scroll" role="navigation" aria-label="Projects">
+    {% for p in layout.projects %}
+    <a class="tab {% if p.depth > 0 %}tab--child{% endif %}" href="/projects/{{ p.slug }}" {% if p.id == project.id %}aria-current="page"{% endif %}>{{ p.name }}{% if p.open_tasks > 0 %}<span class="meta">{{ p.open_tasks }}</span>{% endif %}</a>
+    {% endfor %}
+  </div>
+  <div class="page-head__intro">
+    {% if let Some(par) = parent %}<a class="meta crumb" href="/projects/{{ par.slug }}">{{ par.name }} /</a>{% endif %}
+    <h1 class="title">{{ project.name }}</h1>
+    {% if let Some(d) = project.description %}<p>{{ d }}</p>{% endif %}
+    {% if !children.is_empty() %}
+    <p class="meta">Includes {% for c in children %}<a href="/projects/{{ c.slug }}">{{ c.name }}</a>{% if !loop.last %}, {% endif %}{% endfor %}</p>
+    {% endif %}
+  </div>
+</header>
+
+<section class="section">
+  <h2 class="label">Tasks</h2>
+  <div class="board" data-board data-project="{{ project.id }}">
+    {% for col in columns %}
+    <div class="column column--{{ col.key }}" data-column="{{ col.key }}">
+      <h3 class="column__head">{{ col.label }}<span class="meta" data-count>{{ col.tasks.len() }}</span></h3>
+      <div class="column__cards" data-dropzone>
+        {% for t in col.tasks %}
+        <article class="card" draggable="true" tabindex="0"
+           data-task-id="{{ t.id }}" data-position="{{ t.position }}" data-title="{{ t.title }}" data-notes="{{ t.notes }}"
+           data-status="{{ t.status }}" data-project="{% if let Some(p) = t.project_id %}{{ p }}{% endif %}"
+           data-area="{% if let Some(a) = t.area %}{{ a }}{% endif %}" data-due="{% if let Some(d) = t.due_date %}{{ d }}{% endif %}"
+           data-time="{% if let Some(d) = t.due_time %}{{ d }}{% endif %}" data-source="{{ t.source_label }}{% if let Some(l) = t.list %} · {{ l }}{% endif %}">
+          <span class="card__title">{{ t.title }}</span>
+          <span class="meta">
+            {% if let Some(pn) = t.project_name %}{% if t.project_id != this_project %}{{ pn }} · {% endif %}{% endif %}{{ t.source_label }}{% if !t.due_label.is_empty() %} · <span class="{% if t.overdue %}is-overdue{% endif %}">{{ t.due_label }}</span>{% endif %}{% if t.pending_writeback %} · syncing{% endif %}
+          </span>
+        </article>
+        {% endfor %}
+      </div>
+      {% if col.key == "todo" %}
+      <form class="add-card" data-add-task>
+        <input name="title" placeholder="+ Add a task" autocomplete="off" aria-label="New task in {{ project.name }}">
+        <input type="hidden" name="project_id" value="{{ project.id }}">
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section">
+  <h2 class="label">Notes · {{ project.name }}</h2>
+  {% if own_notes.is_empty() %}
+  <p class="empty">No notes in this project's folder yet.</p>
+  {% else %}
+  <div class="notes">
+    {% for n in own_notes %}
+    <a class="note" href="/wiki/{{ n.slug }}">{{ n.title }}<span class="meta">{{ n.folder }} · {{ n.modified }}</span></a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+
+<section class="section">
+  <div class="section__head">
+    <h2 class="label">Related · from Learning, Resources and Admin</h2>
+    <form class="pin-form" data-pin-form data-project="{{ project.id }}">
+      <input type="search" placeholder="Link a note…" autocomplete="off" aria-label="Link a note to this project" data-pin-input>
+      <div class="wiki-results" data-pin-results hidden></div>
+    </form>
+  </div>
+  {% if related.is_empty() %}
+  <p class="empty">Nothing related yet. Notes appear here when they link to this project's notes, mention “{{ project.name }}”, or when you link them above.</p>
+  {% else %}
+  <div class="notes">
+    {% for n in related %}
+    <div class="note">
+      <a href="/wiki/{{ n.slug }}" class="note__title">{{ n.title }}</a>
+      <span class="meta">{{ n.folder }}{% if n.pinned %} · linked <button type="button" class="link-btn" data-unpin="{{ n.id }}" data-project="{{ project.id }}">unlink</button>{% endif %}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

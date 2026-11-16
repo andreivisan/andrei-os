@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block main_class %}main--wiki{% endblock %}
+{% block content %}
+{% include "wiki_bar.html" %}
+<div class="wiki-bar">
+  <div class="tabs">
+    <a class="tab" href="/wiki/{{ slug }}" {% if !links_here_only %}aria-current="page"{% endif %}>Article</a>
+    <a class="tab" href="/wiki/{{ slug }}/links-here" {% if links_here_only %}aria-current="page"{% endif %}>What links here</a>
+  </div>
+  <div class="tabs">
+    <a class="tab" href="/wiki">Main page</a>
+    <a class="tab" href="/wiki/special/all">All articles</a>
+    <a class="tab" href="/wiki/special/random">Random</a>
+  </div>
+</div>
+<div class="wiki-body">
+  <article class="article">
+    <header>
+      <h1>{{ title }}</h1>
+      {% if can_focus %}
+      <button type="button" class="link-btn meta" data-set-focus="{% if is_focus %}{% else %}note:{{ slug }}{% endif %}">{% if is_focus %}Current learning focus · unset{% else %}Set as learning focus{% endif %}</button>
+      {% endif %}
+    </header>
+    {% if links_here_only %}
+      <section>
+        <h2>Pages that link to “{{ title }}”</h2>
+        {% if backlinks.is_empty() %}<p>No pages link here yet.</p>{% else %}
+        <ul>{% for b in backlinks %}<li><a href="{{ b.href }}">{{ b.title }}</a></li>{% endfor %}</ul>
+        {% endif %}
+      </section>
+    {% else %}
+      {% if !toc.is_empty() %}
+      <nav class="toc" aria-label="Contents">
+        <div class="label">Contents</div>
+        {% for e in toc %}
+        <a href="#{{ e.id }}" class="toc__l{{ e.level }}"><span>{{ e.number }}</span>{{ e.text }}</a>
+        {% endfor %}
+      </nav>
+      {% endif %}
+      <div class="article__body {% if missing %}is-missing-page{% endif %}">{{ html|safe }}</div>
+    {% endif %}
+    <footer class="wiki-foot">
+      <div id="links-here"><span>What links here</span>
+        {% for b in backlinks %}<a href="{{ b.href }}">{{ b.title }}</a>{% else %}<span>Nothing yet</span>{% endfor %}
+      </div>
+      {% if !categories.is_empty() %}
+      <div><span>Categories</span>{% for c in categories %}<a href="{{ c.href }}">{{ c.title }}</a>{% endfor %}</div>
+      {% endif %}
+    </footer>
+  </article>
+  {% if !info.is_empty() %}
+  <aside class="infobox" aria-label="Summary">
+    <div class="infobox__title">{{ title }}</div>
+    <dl>
+      {% for row in info %}
+      <dt>{{ row.key }}</dt>
+      <dd>{% for l in row.links %}<a href="{{ l.href }}" {% if l.missing %}class="is-missing"{% endif %}>{{ l.title }}</a>{% if !loop.last %}, {% endif %}{% endfor %}{{ row.text }}</dd>
+      {% endfor %}
+    </dl>
+  </aside>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#050607">
+  <title>Andrei OS — {{ layout.title }}</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;family=Space+Grotesk:wght@400;500&amp;display=swap">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="app">
+    <nav class="side" aria-label="Sections">
+      <a class="brand" href="/">Andrei OS</a>
+      <div class="nav">
+        <a href="/" {% if layout.active == "dashboard" %}aria-current="page"{% endif %}>Dashboard</a>
+        <a href="/projects" {% if layout.active == "projects" %}aria-current="page"{% endif %}>Projects</a>
+        <a href="/tasks" {% if layout.active == "tasks" %}aria-current="page"{% endif %}>Tasks</a>
+        <a href="/wiki" {% if layout.active == "wiki" %}aria-current="page"{% endif %}>Wiki</a>
+        <a href="/library" {% if layout.active == "library" %}aria-current="page"{% endif %}>Library</a>
+      </div>
+      <div class="nav-group">
+        <div class="label">Areas</div>
+        <div class="nav nav--sub">
+          {% for (key, label) in layout.areas %}
+          <a href="/area/{{ key }}" {% if layout.active == *key %}aria-current="page"{% endif %}>{{ label }}</a>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="side__foot">
+        <button class="sync-btn" type="button" data-sync>
+          <span class="dot {% if !layout.sync_ok %}dot--warn{% endif %}"></span>
+          <span data-sync-label>{{ layout.last_sync }}</span>
+        </button>
+        <a class="meta" href="/sync">Sync log</a>
+      </div>
+    </nav>
+    <main class="main {% block main_class %}{% endblock %}">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <!-- Task editor: shared by every task view -->
+  <dialog id="task-dialog" class="dialog" aria-labelledby="task-dialog-title">
+    <form method="dialog" class="dialog__form" data-task-form>
+      <h2 class="label" id="task-dialog-title">Task</h2>
+      <input type="hidden" name="id">
+      <label class="field"><span>Title</span><input name="title" required autocomplete="off"></label>
+      <label class="field"><span>Notes</span><textarea name="notes" rows="3"></textarea></label>
+      <div class="field-row">
+        <label class="field"><span>Status</span>
+          <select name="status">
+            <option value="todo">To do</option><option value="doing">Doing</option><option value="done">Done</option>
+          </select>
+        </label>
+        <label class="field"><span>Due</span><input type="date" name="due_date"></label>
+        <label class="field"><span>Time</span><input type="time" name="due_time"></label>
+      </div>
+      <label class="field"><span>Belongs to</span>
+        <select name="target">
+          <option value="">Inbox</option>
+          <optgroup label="Projects">
+            {% for p in layout.projects %}
+            <option value="project:{{ p.id }}">{% for _ in 0..p.depth %}— {% endfor %}{{ p.name }}</option>
+            {% endfor %}
+          </optgroup>
+          <optgroup label="Areas">
+            {% for (key, label) in layout.areas %}
+            <option value="area:{{ key }}">{{ label }}</option>
+            {% endfor %}
+          </optgroup>
+        </select>
+      </label>
+      <p class="meta" data-task-source></p>
+      <div class="dialog__actions">
+        <button type="button" class="btn btn--danger" data-task-delete>Delete</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn" data-dialog-close>Cancel</button>
+        <button type="submit" class="btn btn--primary" value="save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toasts" aria-live="polite"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

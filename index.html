@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#050607">
+  <title>Andrei OS — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;family=Space+Grotesk:wght@400;500&amp;display=swap">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <div class="app">
+    <nav class="side" aria-label="Sections">
+      <a class="brand" href="index.html">Andrei OS</a>
+      <div class="nav">
+        <a href="index.html" aria-current="page">Dashboard</a>
+        <a href="project.html">Projects</a>
+        <a href="wiki.html">Wiki</a>
+        <a href="library.html">Library</a>
+      </div>
+    </nav>
+    <main class="main main--dash">
+      <header class="dash-head">
+        <div class="meta" id="today"></div>
+        <h1 class="title"><span id="greeting">Good morning</span>, Andrei</h1>
+      </header>
+      <div class="dash">
+        <div class="dash__main">
+          <section class="stack list" id="tasks">
+            <h2 class="label">Today's tasks</h2>
+            <label class="row">
+              <input type="checkbox">
+              <span class="row__text">Prepare notes for the NXP meeting</span>
+              <span class="meta">Hudward</span>
+            </label>
+            <label class="row">
+              <input type="checkbox">
+              <span class="row__text">Model router: local vs cloud policy</span>
+              <span class="meta">HudAgents</span>
+            </label>
+            <label class="row">
+              <input type="checkbox">
+              <span class="row__text">Rust for Rustaceans: chapter exercises</span>
+              <span class="meta">Learning</span>
+            </label>
+            <label class="row">
+              <input type="checkbox">
+              <span class="row__text">Paperwork</span>
+              <span class="meta">Admin</span>
+            </label>
+          </section>
+          <section class="stack list">
+            <h2 class="label">Today's appointments</h2>
+            <div class="row">
+              <span class="row__time">15:00</span>
+              <span class="row__text">Meeting NXP</span>
+              <span class="meta">Calendar</span>
+            </div>
+          </section>
+        </div>
+        <aside class="dash__side">
+          <section class="focus">
+            <h2 class="label">Current learning focus</h2>
+            <a class="focus__link" href="wiki.html#electronics">Electronics<svg class="icon" aria-hidden="true" width="20" height="20" viewBox="0 0 16 16"><path d="M5 11L11 5M6 5h5v5"/></svg></a>
+          </section>
+          <a class="wiki-link" href="wiki.html">Wiki<svg class="icon" aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><path d="M5 11L11 5M6 5h5v5"/></svg></a>
+          <section class="panel">
+            <h2 class="label">Compiled daily from</h2>
+            <div class="panel__row"><span class="dot"></span>Notes<span class="meta">handwritten, markdown, voice</span></div>
+            <div class="panel__row"><span class="dot"></span>Calendar</div>
+            <div class="panel__row"><span class="dot"></span>Mail</div>
+            <div class="panel__row"><span class="dot"></span>Reminders</div>
+          </section>
+        </aside>
+      </div>
+    </main>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

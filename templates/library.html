@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block main_class %}main--library{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div class="tabs" role="navigation" aria-label="Show">
+    <a class="tab" href="/library" {% if kind.is_empty() %}aria-current="page"{% endif %}>All</a>
+    <a class="tab" href="/library?kind=film" {% if kind == "film" %}aria-current="page"{% endif %}>Films</a>
+    <a class="tab" href="/library?kind=tv" {% if kind == "tv" %}aria-current="page"{% endif %}>TV shows</a>
+    <a class="tab" href="/library?kind=book" {% if kind == "book" %}aria-current="page"{% endif %}>Books</a>
+  </div>
+  <div class="page-head__row">
+    <h1 class="title">Library</h1>
+    <span class="meta">{{ total }} titles</span>
+  </div>
+  {% if tmdb_missing %}
+  <p class="meta">Films and TV shows need a free TMDB API key for posters and details (see README). Books use Open Library.</p>
+  {% endif %}
+</header>
+
+{% for shelf in shelves %}
+{% if !shelf.tiles.is_empty() || shelf.add_kind.is_some() %}
+<section class="section">
+  <h2 class="label">{{ shelf.title }}</h2>
+  <div class="shelf">
+    {% for t in shelf.tiles %}
+    <a class="tile" href="/library/{{ t.id }}">
+      <div class="tile__cover {% if t.poster.is_some() %}has-poster{% endif %}">
+        {% if let Some(p) = t.poster %}<img src="{{ p }}" alt="" loading="lazy">{% endif %}
+        <div class="tile__kind">{{ t.kind_label }}{% if let Some(s) = t.score %}<span class="tile__score">★ {{ s }}</span>{% endif %}</div>
+        {% if t.poster.is_none() %}<div class="tile__no">{{ "{:02}"|format(t.n) }}</div>{% endif %}
+      </div>
+      <div class="tile__info">{{ t.title }}<span class="meta">{{ t.meta }}</span></div>
+    </a>
+    {% endfor %}
+    {% if let Some(k) = shelf.add_kind %}
+    <div class="tile">
+      <button class="tile__add" type="button" data-add-title="{{ k }}"><svg class="icon" aria-hidden="true" width="20" height="20" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></svg>Add title</button>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+{% endfor %}
+
+<dialog id="title-dialog" class="dialog" aria-labelledby="title-dialog-h">
+  <form method="dialog" class="dialog__form" data-title-form>
+    <h2 class="label" id="title-dialog-h">Add a title</h2>
+    <label class="field"><span>Kind</span>
+      <select name="kind"><option value="film">Film</option><option value="tv">TV show</option><option value="book">Book</option></select>
+    </label>
+    <label class="field"><span>Title</span><input name="title" required autocomplete="off"></label>
+    <p class="meta">Tip: titles you add as notes in Apple Notes → AndreiOS/Interests appear here automatically.</p>
+    <div class="dialog__actions">
+      <span class="spacer"></span>
+      <button type="button" class="btn" data-dialog-close>Cancel</button>
+      <button type="submit" class="btn btn--primary">Add</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}

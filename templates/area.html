@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-head">
+  <h1 class="title">{{ label }}</h1>
+  {% if key == "interests" %}
+  <p class="muted"><a href="/library">Library →</a> {{ library_count }} films, shows and books</p>
+  {% endif %}
+</header>
+
+<section class="stack list">
+  <h2 class="label">Tasks</h2>
+  {% for t in tasks %}
+    {% include "task_row.html" %}
+  {% else %}
+    <p class="empty">No open tasks. Tag a reminder #{{ label }} to add one here.</p>
+  {% endfor %}
+  <form class="add-row" data-add-task>
+    <input name="title" placeholder="Add a task to {{ label }}" autocomplete="off" aria-label="New task">
+    <input type="hidden" name="area" value="{{ key }}">
+  </form>
+</section>
+
+{% for g in groups %}
+<section class="section">
+  <h2 class="label"><a href="/wiki/category/{{ g.key }}">{{ g.name }}</a> · {{ g.notes.len() }}</h2>
+  <div class="notes">
+    {% for n in g.notes %}
+    <a class="note" href="/wiki/{{ n.slug }}">{{ n.title }}{% if !n.lead.is_empty() %}<span class="note__lead">{{ n.lead }}</span>{% endif %}<span class="meta">{{ n.modified }}</span></a>
+    {% endfor %}
+  </div>
+</section>
+{% else %}
+<p class="empty">No notes yet. Add notes to AndreiOS/{{ label }} in Apple Notes.</p>
+{% endfor %}
+{% endblock %}

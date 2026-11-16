@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+<a class="meta crumb" href="/library{% if kind == "film" %}?kind=film{% else if kind == "tv" %}?kind=tv{% else %}?kind=book{% endif %}">← Library</a>
+<div class="title-page" data-item="{{ id }}">
+  <div class="title-page__poster {% if poster.is_some() %}has-poster{% endif %}">
+    {% if let Some(p) = poster %}<img src="{{ p }}" alt="Poster of {{ title }}">{% else %}<div class="tile__kind">{{ kind_label }}</div>{% endif %}
+  </div>
+  <div class="title-page__main">
+    <header class="title-page__head">
+      <h1 class="title">{{ title }}</h1>
+      <div class="title-page__facts meta">
+        <span>{{ kind_label }}</span>
+        {% if !year.is_empty() %}<span>{{ year }}</span>{% endif %}
+        {% if !runtime.is_empty() %}<span>{{ runtime }}</span>{% endif %}
+      </div>
+      {% if !genres.is_empty() %}
+      <div class="chips">{% for g in genres %}<span class="chip">{{ g }}</span>{% endfor %}</div>
+      {% endif %}
+    </header>
+
+    <div class="score-box">
+      <div class="score-box__value">
+        <span class="label">My score</span>
+        <span class="score-box__num">{% if let Some(s) = score %}<span class="star">★</span>{{ s }}<span class="meta">/10</span>{% else %}<span class="meta">Not rated</span>{% endif %}</span>
+        {% if score_from_note %}<span class="meta">from your note</span>{% endif %}
+      </div>
+      <form class="score-box__edit" data-score-form>
+        <label class="sr-only" for="score-input">Score out of 10</label>
+        <input id="score-input" type="number" name="score" min="0" max="10" step="0.5" value="{{ score_value }}" placeholder="0–10">
+        <button class="btn" type="submit">Rate</button>
+      </form>
+      <label class="field field--inline"><span class="label">Status</span>
+        <select data-item-status>
+          <option value="" {% if status.is_empty() %}selected{% endif %}>—</option>
+          <option value="want" {% if status == "want" %}selected{% endif %}>Want to {% if kind == "book" %}read{% else %}watch{% endif %}</option>
+          <option value="in_progress" {% if status == "in_progress" %}selected{% endif %}>{% if kind == "book" %}Reading{% else %}Watching{% endif %}</option>
+          <option value="finished" {% if status == "finished" %}selected{% endif %}>{% if kind == "book" %}Read{% else %}Watched{% endif %}</option>
+        </select>
+      </label>
+    </div>
+
+    {% if !creator.is_empty() %}
+    <dl class="credits"><dt>{{ creator_label }}</dt><dd>{{ creator }}</dd></dl>
+    {% endif %}
+
+    <section class="stack">
+      <h2 class="label">My summary</h2>
+      {% if let Some(h) = note_html %}
+        <div class="article__body prose">{{ h|safe }}</div>
+        {% if let Some(s) = note_slug %}<a class="meta" href="/wiki/{{ s }}">Open the note →</a>{% endif %}
+      {% else %}
+        <form data-summary-form class="stack">
+          <textarea name="summary" rows="5" placeholder="What did you think?">{{ summary }}</textarea>
+          <div><button class="btn" type="submit">Save summary</button></div>
+        </form>
+      {% endif %}
+    </section>
+
+    {% if !overview.is_empty() %}
+    <section class="stack">
+      <h2 class="label">Synopsis{% if !overview_source.is_empty() %} · {{ overview_source }}{% endif %}</h2>
+      <p class="prose">{{ overview }}</p>
+    </section>
+    {% endif %}
+
+    {% if let Some(u) = link_url %}<a class="meta" href="{{ u }}" target="_blank" rel="noopener noreferrer">Saved link →</a>{% endif %}
+
+    <details class="fixmatch">
+      <summary class="meta">{% if meta_status == "not_found" %}No match found — fix the lookup{% else if meta_status == "no_key" %}Needs a TMDB key for details{% else if meta_status == "error" %}Lookup failed — retry{% else %}Wrong poster or details?{% endif %}</summary>
+      <form data-lookup-form class="field-row">
+        <input name="lookup" value="{{ lookup }}" placeholder="Search for this title instead (e.g. corrected spelling)" aria-label="Lookup title">
+        <button class="btn" type="submit">Look up</button>
+      </form>
+      {% if tmdb_missing %}<p class="meta">Set TMDB_API_KEY to fetch film and TV details.</p>{% endif %}
+      {% if !from_notes %}<button class="btn btn--danger" type="button" data-item-delete>Remove from library</button>{% endif %}
+    </details>
+  </div>
+</div>
+{% endblock %}

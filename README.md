@@ -1,105 +1,125 @@
-# Andrei OS
+# AndreiOS
 
-Andrei OS is one application for managing everything that needs and can be managed in my life.
+A second brain that compiles itself from Apple Notes, Reminders and Calendar.
+Rust + Axum + SQLite; notes become Markdown files rendered as a wiki.
 
-## Architecture
+You keep writing where you already write:
 
-Version 1 is also a Rust learning project. The backend uses Axum and Tokio, with SQLx and SQLite for persistence.
+| You write in…      | It becomes…                                                                 |
+|--------------------|-----------------------------------------------------------------------------|
+| **Apple Notes**, folder `AndreiOS/` | wiki articles (Markdown), project notes, library titles, checklist tasks |
+| **Reminders**      | tasks; a tag like `#HudAgents` puts it on that project's board, `#Admin` / `#Health` in that area |
+| **Calendar**       | today's appointments                                                        |
 
-The project is organized by feature. Application startup and external systems are kept outside the feature modules:
+## Folder conventions (Apple Notes)
 
-```text
-src/
-├── main.rs
-├── application/
-│   └── mod.rs
-├── infrastructure/
-│   ├── mod.rs
-│   └── database/
-│       └── mod.rs
-└── modules/
-    ├── mod.rs
-    └── expenses/
-        ├── mod.rs
-        ├── models.rs
-        ├── repository.rs
-        ├── handlers.rs
-        └── router.rs
+```
+AndreiOS/
+  Learning/<topic>/…        wiki articles; topics become categories ("Rust")
+  Projects/<project>/…      one project per folder (nested folders = sub-projects)
+  Health/  Resources/  Admin/
+  Interests/Books|Movies|TV Shows/
+        one note per title  → library item (write "Score: 8/10" or "Status: reading" in it)
+        a note whose title starts with the folder name ("Books I read in 2023")
+                            → one library item per line or link
 ```
 
-### Responsibilities
+Notes outside the `AndreiOS` folder are ignored (change with `ANDREIOS_NOTES_ROOT`).
 
-- `main.rs` starts the Tokio runtime and hands control to the application.
-- `application` coordinates startup: configuration, infrastructure, routers, and the HTTP server.
-- `infrastructure/database` creates and configures the SQLx connection pool and handles database-level setup such as migrations.
-- `modules` contains the application's feature modules, such as the expense tracker, capture, fitness, and second brain.
-- `router.rs` declares the Axum routes owned by a feature.
-- `handlers.rs` handles the HTTP boundary: extracting requests, calling application logic, and producing responses.
-- `repository.rs` contains the feature's SQL queries and database mappings.
-- `models.rs` contains the feature's domain structs, enums, and their implementations.
-- A `service.rs` file is added only when a feature develops business logic that does not belong in an HTTP handler or repository.
+## What it does
 
-Middleware is an HTTP concern and remains separate from handlers and business logic. A transaction spanning multiple repository operations is coordinated by the service or use case that owns the complete operation.
+- **Dashboard**: greeting, today's tasks (due today, overdue, in the weekday
+  Reminders list for today, or in progress), today's appointments, current
+  learning focus, link to the wiki.
+- **Tasks**: one table, many views — dashboard, per-project Kanban (drag and
+  drop), the Tasks table with filters, area pages. Edits made in the app stick
+  until you edit the same item at the source. Completing a task that came from
+  Reminders also completes it in Reminders (the only thing ever written back).
+- **Projects**: Kanban, the project's own notes, and related notes from
+  Learning / Resources / Admin (linked, mentioning the project, or pinned).
+- **Wiki**: Wikipedia-style articles with contents box, infobox, "what links
+  here", categories, wanted pages, full-text search (`/`). Links come from
+  `[[Wiki links]]` and automatically from mentions of other articles' titles.
+  Native Apple Notes tables, checklists, headings, code blocks and the literal
+  Markdown you typed (backticks, `**bold**`) are rendered properly.
+- **Library**: Netflix-style shelves; IMDB-style title pages with your score,
+  your summary, synopsis, credits. Metadata from TMDB (films, TV) and Open
+  Library (books); posters are cached locally.
+- **Voice notes**: audio recordings in notes get a player and a transcript —
+  Apple's own when available, otherwise whisper.cpp (English and Romanian).
 
-### Dependency flow
+## Run it
 
-```text
-main
-  → application::run
-      → infrastructure::database creates the SQLx pool
-      → modules::router receives application state
-          → handler
-              → service, when needed
-                  → repository
-                      → SQLx pool
+```sh
+cargo run --release            # http://127.0.0.1:4000, syncs every 15 min
+cargo run --release -- sync    # one sync, then exit
+cargo run --release -- transcribe [--force]
 ```
 
-Infrastructure owns how the database pool is created, but the pool is not stored in a global variable. It is returned to the application and passed explicitly through Axum state so dependencies remain visible and testable.
+The terminal you run it from needs **Full Disk Access** (System Settings →
+Privacy & Security) to read the Apple databases. The first time you tick a
+Reminders task, macOS asks to let AndreiOS control Reminders.
 
-## Production readiness
+Data lives in `~/Library/Application Support/AndreiOS/` (`andrei-os.db`,
+`content/` Markdown, `media/`, `posters/`).
 
-The current architecture is suitable to build on, but the following work should be completed before exposing Andrei OS as a production service.
+### Configuration (environment variables)
 
-### Configuration and startup
+| Variable | Default |
+|---|---|
+| `ANDREIOS_DATA_DIR` | `~/Library/Application Support/AndreiOS` |
+| `ANDREIOS_BIND` | `127.0.0.1:4000` |
+| `ANDREIOS_TZ` | `Europe/Bucharest` |
+| `ANDREIOS_SYNC_INTERVAL_MINS` | `15` (0 = off) |
+| `ANDREIOS_NOTES_ROOT` | `AndreiOS` |
+| `ANDREIOS_CALENDARS` | all except Birthdays, Siri suggestions, Scheduled Reminders; e.g. `Business,Life,Health & Fitness` |
+| `TMDB_API_KEY` | none — get a free key at themoviedb.org (v3 key or v4 read token) |
+| `ANDREIOS_WHISPER_BIN` / `ANDREIOS_WHISPER_MODEL` | `/opt/homebrew/bin/whisper-cli` / `<data>/models/ggml-large-v3-turbo.bin` |
 
-- Make the bind address configurable, for example with `ANDREI_OS_BIND_ADDRESS`. `127.0.0.1` is appropriate for local-only access; containers and remote clients commonly require `0.0.0.0`, which must not be used without appropriate authentication and network protection.
-- Continue providing production configuration through process environment variables. Validate required variables at startup and report the name of any missing or invalid variable without exposing secrets.
-- Let startup fail before accepting traffic when configuration, the database connection, or migrations are invalid. Prefer structured startup errors and a non-zero process exit over panics without context.
-- Gate Unix-specific signal imports with `#[cfg(unix)]` so the project still compiles on non-Unix targets.
-- Test graceful shutdown and ensure in-flight requests are allowed to finish.
+### Transcription
 
-### Database and migrations
+```sh
+brew install whisper.cpp
+mkdir -p ~/Library/Application\ Support/AndreiOS/models
+curl -L -o ~/Library/Application\ Support/AndreiOS/models/ggml-large-v3-turbo.bin \
+  https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin
+andrei-os transcribe --force   # replace Apple's English-only transcripts too
+```
 
-- Configure SQLite for the expected web workload. Consider WAL journal mode, keep the pool small, and load-test concurrent reads and writes.
-- Add a root `build.rs` that prints `cargo:rerun-if-changed=src/infrastructure/database/sqlite/migrations` so newly added embedded migrations trigger recompilation.
-- Add `*.sql text eol=lf` to `.gitattributes` so migration checksums are stable across operating systems.
-- Treat every applied migration as immutable. Make schema changes with a new migration and test clean installation as well as upgrading an existing database.
-- Store the SQLite file on persistent local storage with correct filesystem permissions. Do not place it on an unsuitable shared or ephemeral filesystem.
-- Run only one application instance against the SQLite file. Move to a client/server database such as PostgreSQL before introducing multiple application instances.
-- Establish automated backups, retention, and a tested restore procedure. A backup is not trusted until restoration has been verified.
+### Run it in the background (launchd)
 
-### HTTP and security
+```sh
+cargo install --path .
+sed "s/YOUR_USER/$USER/g" deploy/com.andreios.server.plist > ~/Library/LaunchAgents/com.andreios.server.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.andreios.server.plist
+```
 
-- Add authentication and authorization before making personal data reachable outside a trusted local machine.
-- Terminate TLS either in the application or, more commonly, at a trusted reverse proxy.
-- Add request timeouts, request-body size limits, and appropriate concurrency limits.
-- Configure CORS only when a frontend on a different origin requires it; do not default to allowing every origin.
-- Return consistent JSON error responses and log internal details instead of exposing database or implementation errors to clients.
-- Add request tracing and avoid logging secrets, credentials, or sensitive personal data.
+Then add `~/.cargo/bin/andrei-os` to **Full Disk Access** (launchd processes
+don't inherit your terminal's permission). Logs: `~/Library/Logs/AndreiOS.log`.
+The **Sync log** page in the app shows which sources are readable.
 
-### Observability
+## Security
 
-- Install and initialize `tracing-subscriber` once in the executable so existing `tracing` events are actually recorded.
-- Configure log levels through `RUST_LOG`, with sensible production defaults and noisier local overrides.
-- Add liveness and readiness endpoints. Readiness should fail when the application cannot serve requests safely, including when its database dependency is unavailable.
-- Ensure startup, migration, request failure, and graceful-shutdown events are visible in logs.
+The server only answers on localhost, refuses requests whose Host header is
+not local (DNS rebinding) and only accepts same-origin JSON for changes
+(CSRF). Raw HTML inside notes is shown as text, never executed. Apple
+databases are opened read-only.
 
-### Testing and delivery
+## Code map
 
-- Add repository tests against an isolated SQLite database and API integration tests covering the complete router-to-database flow.
-- Test migrations against a fresh database and a copy representing the previously released schema.
-- Avoid pooled `sqlite::memory:` tests unless the pool is restricted to one connection; separate in-memory SQLite connections otherwise see separate databases. A temporary database file is usually less surprising.
-- Add CI checks for formatting, compilation, Clippy, tests, and dependency vulnerability auditing.
-- Produce and test release builds with `cargo build --release`, keep `Cargo.lock` committed, and deploy the exact artifact that passed CI.
-- Run the service as a non-root operating-system user with access limited to the application and database paths it requires.
-- Reduce broad dependency features such as Tokio's `full` feature to the capabilities actually used once the implementation has stabilized.
+```
+src/apple/        readers for Apple's stores (read-only) + Reminders write-back
+  notes/          protobuf body → Markdown, native tables (CRDT), transcripts
+src/sync/         sync engine: notes → Markdown files + index, reminders → tasks,
+                  calendar → events, library metadata, whisper transcription
+src/render.rs     Markdown → HTML (wiki links, auto-links, TOC, audio players)
+src/web/          Axum routes, pages (Askama templates), JSON API
+templates/ static/ migrations/
+docs/apple-formats.md   the verified Apple storage formats
+```
+
+Tests: `cargo test`. Verification against real Notes data (kept outside the
+repo because it is personal): `ANDREIOS_FIXTURES=<dir> cargo test --test apple_fixtures`.
+
+The `index.html`, `project.html`, `wiki.html`, `library.html` and `assets/`
+files are the original static design POC.

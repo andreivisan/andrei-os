@@ -20,14 +20,12 @@ Icon?
 Network Trash Folder
 Temporary Items
 
-# Expense tracker design reference
-/Expense tracker mobile app design/
-/Expense tracker mobile app design.zip
-
-# Axum DB
+# Local config & data (the app's data lives in ~/Library/Application Support/AndreiOS)
 /.env
-/andrei-os.db*
+/data/
+*.db
+*.db-shm
+*.db-wal
 
-# Frontend
-/client/node_modules/
-/client/dist/
+# Personal fixtures for tests/apple_fixtures.rs — never commit
+/fixtures/

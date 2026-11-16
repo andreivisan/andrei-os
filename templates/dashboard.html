@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block main_class %}main--dash{% endblock %}
+{% block content %}
+<header class="dash-head">
+  <div class="meta">{{ date_label }}</div>
+  <h1 class="title">{{ greeting }}, Andrei</h1>
+</header>
+<div class="dash">
+  <div class="dash__main">
+    <section class="stack list">
+      <h2 class="label">Today's tasks</h2>
+      {% for t in tasks %}
+        {% include "task_row.html" %}
+      {% else %}
+        <p class="empty">Nothing due today.</p>
+      {% endfor %}
+      <form class="add-row" data-add-task>
+        <input name="title" placeholder="Add a task for today" autocomplete="off" aria-label="New task">
+        <input type="hidden" name="due_date" value="today">
+      </form>
+      {% if inbox_count > 0 %}
+      <a class="meta more" href="/tasks?view=inbox">{{ inbox_count }} in Inbox without project →</a>
+      {% endif %}
+    </section>
+    <section class="stack list">
+      <h2 class="label">Today's appointments</h2>
+      {% for e in events %}
+      <div class="row {% if e.now %}is-now{% endif %}">
+        <span class="row__time">{{ e.time }}</span>
+        <span class="row__text">{{ e.title }}{% if let Some(l) = e.location %}<span class="meta"> · {{ l }}</span>{% endif %}</span>
+        <span class="meta">{{ e.calendar }}</span>
+      </div>
+      {% else %}
+      <p class="empty">No appointments today.</p>
+      {% endfor %}
+      {% if !upcoming.is_empty() %}
+      <div class="label label--sub">Next</div>
+      {% for e in upcoming %}
+      <div class="row row--quiet">
+        <span class="row__time">{{ e.day }}</span>
+        <span class="row__text">{{ e.title }}</span>
+        <span class="meta">{{ e.time }}</span>
+      </div>
+      {% endfor %}
+      {% endif %}
+    </section>
+  </div>
+  <aside class="dash__side">
+    <section class="focus">
+      <h2 class="label">Current learning focus</h2>
+      {% if let Some(f) = focus %}
+      <a class="focus__link" href="{{ f.href }}">{{ f.label }}<svg class="icon" aria-hidden="true" width="20" height="20" viewBox="0 0 16 16"><path d="M5 11L11 5M6 5h5v5"/></svg></a>
+      <span class="meta">{{ f.sub }}{% if focus_auto %} · automatic{% endif %}</span>
+      {% else %}
+      <p class="empty">Add notes under AndreiOS/Learning to set a focus.</p>
+      {% endif %}
+      <details class="focus__pick">
+        <summary class="meta">Change focus</summary>
+        <select data-focus-select aria-label="Learning focus">
+          {% for o in focus_options %}
+          <option value="{{ o.value }}" {% if o.selected %}selected{% endif %}>{{ o.label }}</option>
+          {% endfor %}
+        </select>
+      </details>
+    </section>
+    <a class="wiki-link" href="/wiki">Wiki<span class="meta">{{ article_count }} articles</span><svg class="icon" aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><path d="M5 11L11 5M6 5h5v5"/></svg></a>
+    <section class="panel">
+      <h2 class="label">Compiled from</h2>
+      <div class="panel__row"><span class="dot"></span>Notes<span class="meta">text, tables, voice</span></div>
+      <div class="panel__row"><span class="dot"></span>Reminders<span class="meta">tags → projects</span></div>
+      <div class="panel__row"><span class="dot"></span>Calendar</div>
+      <div class="panel__row"><span class="dot {% if !layout.sync_ok %}dot--warn{% endif %}"></span>{{ layout.last_sync }}<a class="meta" href="/sync">log</a></div>
+    </section>
+  </aside>
+</div>
+{% endblock %}

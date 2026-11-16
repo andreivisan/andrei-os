@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-head">
+  <h1 class="title">Sync</h1>
+  <p class="muted">AndreiOS reads Apple Notes, Reminders and Calendar from their local databases (read-only) every few minutes. Completing a Reminders task here also completes it in Reminders.</p>
+  <div><button class="btn btn--primary" type="button" data-sync>Sync now</button></div>
+</header>
+<section class="stack list">
+  <h2 class="label">Sources</h2>
+  {% for (name, ok, detail) in checks %}
+  <div class="row"><span class="dot {% if !ok %}dot--warn{% endif %}"></span><span class="row__text">{{ name }}</span><span class="meta wrap">{{ detail }}</span></div>
+  {% endfor %}
+</section>
+<section class="stack list">
+  <h2 class="label">Recent runs</h2>
+  {% for r in runs %}
+  <div class="run">
+    <div class="run__head"><span class="dot {% if !r.ok %}dot--warn{% endif %}"></span><span>{{ r.when }}</span></div>
+    {% for l in r.lines %}<div class="meta">{{ l }}</div>{% endfor %}
+    {% for w in r.warnings %}<div class="meta is-warn">warning: {{ w }}</div>{% endfor %}
+    {% for e in r.errors %}<div class="meta is-error">error: {{ e }}</div>{% endfor %}
+  </div>
+  {% else %}
+  <p class="empty">No sync has run yet.</p>
+  {% endfor %}
+</section>
+{% endblock %}

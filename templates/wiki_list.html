@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block main_class %}main--wiki{% endblock %}
+{% block content %}
+{% include "wiki_bar.html" %}
+<div class="wiki-bar">
+  <div class="tabs">
+    <a class="tab" href="/wiki" {% if tab == "home" %}aria-current="page"{% endif %}>Main page</a>
+  </div>
+  <div class="tabs">
+    <a class="tab" href="/wiki/special/all" {% if tab == "all" %}aria-current="page"{% endif %}>All articles</a>
+    <a class="tab" href="/wiki/special/random">Random</a>
+  </div>
+</div>
+<article class="article article--wide">
+  <header>
+    <h1>{{ title }}</h1>
+    <p>{{ intro }}</p>
+    {% if !focus_value.is_empty() %}
+    <button type="button" class="link-btn meta" data-set-focus="{% if is_focus %}{% else %}{{ focus_value }}{% endif %}">{% if is_focus %}Current learning focus · unset{% else %}Set as learning focus{% endif %}</button>
+    {% endif %}
+  </header>
+  {% for s in sections %}
+  <section>
+    <h2>{% if !s.href.is_empty() %}<a href="{{ s.href }}">{{ s.heading }}</a>{% else %}{{ s.heading }}{% endif %}</h2>
+    <ul class="all-list">
+      {% for l in s.items %}<li><a href="{{ l.href }}" {% if l.missing %}class="is-missing"{% endif %}>{{ l.title }}</a></li>{% endfor %}
+    </ul>
+  </section>
+  {% else %}
+  <p>No articles yet. Notes from AndreiOS in Apple Notes appear here after a sync.</p>
+  {% endfor %}
+</article>
+{% endblock %}

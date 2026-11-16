@@ -1,0 +1,10 @@
+<div class="row task {% if t.status == "done" %}is-done{% endif %}"
+     data-task-id="{{ t.id }}" data-title="{{ t.title }}" data-notes="{{ t.notes }}" data-status="{{ t.status }}"
+     data-project="{% if let Some(p) = t.project_id %}{{ p }}{% endif %}" data-area="{% if let Some(a) = t.area %}{{ a }}{% endif %}"
+     data-due="{% if let Some(d) = t.due_date %}{{ d }}{% endif %}" data-time="{% if let Some(d) = t.due_time %}{{ d }}{% endif %}"
+     data-source="{{ t.source_label }}{% if let Some(l) = t.list %} · {{ l }}{% endif %}">
+  <input type="checkbox" aria-label="Done: {{ t.title }}" data-task-toggle {% if t.status == "done" %}checked{% endif %}>
+  <button type="button" class="row__text task__open" data-task-open>{{ t.title }}{% if t.status == "doing" %}<span class="pill">doing</span>{% endif %}</button>
+  {% if !t.due_label.is_empty() %}<span class="meta {% if t.overdue %}is-overdue{% endif %}">{{ t.due_label }}</span>{% endif %}
+  <a class="meta task__ctx" href="{{ t.context_href }}">{{ t.context }}</a>
+</div>
